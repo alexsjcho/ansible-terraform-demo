@@ -225,13 +225,6 @@ ansible-playbook -i inventory.ini site.yml --tags web
    - Jinja templates for dynamic configuration
    - Idempotent tasks (safe to run multiple times)
 
-## How to Explain This Demo in an Interview (3 Bullets)
-
-• **Orchestration over Configuration**: This demo shows Ansible coordinating a multi-host deployment sequence—deploying the load balancer first, then rolling out web servers one at a time with health checks, demonstrating ordered execution and cross-host coordination rather than just configuring individual machines.
-
-• **Zero-Downtime Strategy**: By using `serial: 1` for rolling updates and HTTP health checks after each server deployment, we ensure service availability throughout the deployment process, with automatic rollback (fail-fast) if any server fails its health check.
-
-• **Production-Ready Patterns**: The project uses Ansible best practices—roles for reusability, handlers for efficient service reloads, Jinja templates for dynamic configuration, and idempotent tasks—making it maintainable and suitable for real-world scenarios.
 
 ## Key Files Explained
 
