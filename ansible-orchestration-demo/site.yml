@@ -1,0 +1,70 @@
+---
+# Main orchestration playbook
+# Demonstrates zero-downtime rolling deployment
+
+- name: Deploy Load Balancer
+  hosts: loadbalancer
+  become: yes
+  roles:
+    - lb
+  tags:
+    - lb
+    - always
+
+- name: Rolling Deployment of Web Servers
+  hosts: webservers
+  become: yes
+  # ORCHESTRATION: Serial execution ensures one server at a time
+  serial: 1
+  roles:
+    - web
+  tags:
+    - web
+    - always
+  pre_tasks:
+    - name: Log server removal from load balancer pool
+      debug:
+        msg: "ORCHESTRATION: Removing {{ inventory_hostname }} from load balancer pool before update"
+      delegate_to: localhost
+      run_once: false
+
+  post_tasks:
+    - name: Set health check target IP
+      set_fact:
+        health_check_ip: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+      # ORCHESTRATION: Use inventory IP or gathered fact IP for health check
+
+    - name: Wait for service to be ready
+      wait_for:
+        port: "{{ web_port }}"
+        host: "{{ health_check_ip }}"
+        delay: 2
+        timeout: 10
+      delegate_to: localhost
+
+    - name: Health check - Verify web server is responding
+      uri:
+        url: "http://{{ health_check_ip }}:{{ web_port }}{{ health_check_path }}"
+        method: GET
+        status_code: 200
+        timeout: "{{ health_check_timeout }}"
+        retries: "{{ health_check_retries }}"
+        delay: "{{ health_check_delay }}"
+      register: health_check_result
+      delegate_to: localhost
+      failed_when: health_check_result.status != 200
+      # ORCHESTRATION: Fail fast if health check fails
+      ignore_errors: false
+
+    - name: Log successful health check
+      debug:
+        msg: "ORCHESTRATION: Health check passed for {{ inventory_hostname }}. Status: {{ health_check_result.status }}"
+      delegate_to: localhost
+      when: health_check_result.status == 200
+
+    - name: Log server re-addition to load balancer pool
+      debug:
+        msg: "ORCHESTRATION: Re-adding {{ inventory_hostname }} to load balancer pool after successful update"
+      delegate_to: localhost
+      run_once: false
+

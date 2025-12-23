@@ -1,0 +1,17 @@
+# Nginx Web Server Configuration
+# Generated from Jinja template
+
+server {
+    listen {{ web_port }};
+    server_name _;
+    root {{ web_root }};
+    index index.html;
+
+    access_log /var/log/nginx/web_access.log;
+    error_log /var/log/nginx/web_error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+

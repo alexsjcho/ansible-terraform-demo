@@ -1,0 +1,32 @@
+# Nginx Load Balancer Configuration
+# Generated from Jinja template with dynamic upstream backends
+
+upstream {{ lb_upstream_name }} {
+{% for server in backend_servers %}
+    server {{ server }}:{{ web_port }};
+{% endfor %}
+    # Load balancing method: default is round-robin
+    # Other options: least_conn, ip_hash, etc.
+}
+
+server {
+    listen {{ lb_port }};
+    server_name _;
+
+    access_log /var/log/nginx/lb_access.log;
+    error_log /var/log/nginx/lb_error.log;
+
+    location / {
+        proxy_pass http://{{ lb_upstream_name }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Health check timeouts
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 5s;
+        proxy_read_timeout 5s;
+    }
+}
+

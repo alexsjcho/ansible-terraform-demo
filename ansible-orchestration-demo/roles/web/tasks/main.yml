@@ -1,0 +1,48 @@
+---
+# Web Server Role - Tasks
+# Installs Nginx and deploys versioned HTML application
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+  notify: restart nginx
+
+- name: Create web root directory
+  file:
+    path: "{{ web_root }}"
+    state: directory
+    mode: '0755'
+    owner: www-data
+    group: www-data
+
+- name: Deploy versioned HTML application
+  template:
+    src: index.html.j2
+    dest: "{{ web_root }}/index.html"
+    mode: '0644'
+    owner: www-data
+    group: www-data
+  notify: restart nginx
+  # ORCHESTRATION: Each deployment updates the versioned content
+
+- name: Deploy Nginx web server configuration
+  template:
+    src: nginx-web.conf.j2
+    dest: /etc/nginx/sites-available/default
+    backup: yes
+  notify: restart nginx
+  # ORCHESTRATION: Template ensures consistent configuration across servers
+
+- name: Ensure Nginx is enabled and started
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+

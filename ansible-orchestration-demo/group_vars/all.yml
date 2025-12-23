@@ -1,0 +1,20 @@
+---
+# Global configuration variables
+
+# Application version to deploy
+app_version: "v2"
+
+# Web server configuration
+web_port: 80
+web_root: /var/www/html
+
+# Load balancer configuration
+lb_port: 80
+lb_upstream_name: backend_servers
+
+# Health check configuration
+health_check_path: "/"
+health_check_timeout: 5
+health_check_retries: 3
+health_check_delay: 2
+

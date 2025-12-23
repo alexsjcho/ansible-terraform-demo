@@ -1,0 +1,10 @@
+---
+# Web Server Role - Handlers
+# Handlers are triggered by notify directives
+
+- name: restart nginx
+  systemd:
+    name: nginx
+    state: restarted
+  # ORCHESTRATION: Restart ensures new content is served
+

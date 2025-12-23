@@ -1,0 +1,36 @@
+---
+# Load Balancer Role - Tasks
+# Installs and configures Nginx as a load balancer
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+  notify: reload nginx
+
+- name: Generate upstream backend list from inventory
+  set_fact:
+    backend_servers: "{{ groups['webservers'] | map('extract', hostvars, 'ansible_host') | list }}"
+  # ORCHESTRATION: Cross-host coordination - LB needs to know about web servers
+  # Uses ansible_host from inventory (set in inventory.ini)
+
+- name: Deploy Nginx load balancer configuration
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/default
+    backup: yes
+  notify: reload nginx
+  # ORCHESTRATION: Handler ensures Nginx reloads only when config changes
+
+- name: Ensure Nginx is enabled and started
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+

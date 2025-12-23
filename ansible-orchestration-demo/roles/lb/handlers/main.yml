@@ -1,0 +1,10 @@
+---
+# Load Balancer Role - Handlers
+# Handlers are triggered by notify directives
+
+- name: reload nginx
+  systemd:
+    name: nginx
+    state: reloaded
+  # ORCHESTRATION: Graceful reload without dropping connections
+

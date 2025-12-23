@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible Orchestration Demo - {{ app_version }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            font-size: 3em;
+            margin: 0 0 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .version {
+            font-size: 1.5em;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        .server-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .info-item {
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Ansible Orchestration Demo</h1>
+        <div class="version">Application Version: <strong>{{ app_version }}</strong></div>
+        <p style="font-size: 1.2em; margin-top: 30px;">
+            This page is served by a web server managed by Ansible.
+        </p>
+        <div class="server-info">
+            <div class="info-item">Server: <strong>{{ inventory_hostname }}</strong></div>
+            <div class="info-item">Hostname: <strong>{{ ansible_hostname }}</strong></div>
+            <div class="info-item">IP Address: <strong>{{ ansible_default_ipv4.address }}</strong></div>
+            <div class="info-item">Deployed at: <strong>{{ ansible_date_time.iso8601 }}</strong></div>
+        </div>
+        <p style="margin-top: 30px; font-size: 0.9em; opacity: 0.8;">
+            Zero-downtime rolling deployment orchestrated by Ansible
+        </p>
+    </div>
+</body>
+</html>
+
