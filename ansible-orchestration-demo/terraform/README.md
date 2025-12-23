@@ -17,57 +17,43 @@ This directory contains Terraform configuration to provision AWS infrastructure 
 
 ## Prerequisites
 
-1. **AWS CLI configured** with credentials
-   ```bash
-   aws configure
-   ```
-
-2. **Terraform installed** (>= 1.0)
+1. **Terraform installed** (>= 1.0)
    ```bash
    brew install terraform  # macOS
    # or download from https://www.terraform.io/downloads
    ```
 
-3. **AWS EC2 Key Pair** created in your AWS account
-   - Go to EC2 → Key Pairs → Create Key Pair
-   - Download the `.pem` file
-   - Save it to `~/.ssh/` with appropriate permissions
+2. **AWS Account** with IAM user credentials:
+   - `AmazonEC2FullAccess` policy
+   - `ElasticLoadBalancingFullAccess` policy
 
 ## Quick Start
 
-### 1. Configure Variables
+### 1. Configure AWS Credentials
 
 ```bash
 cd terraform
-cp terraform.tfvars.example terraform.tfvars
+cp .env.example .env
 ```
 
-Edit `terraform.tfvars` and update:
-- `key_pair_name`: Your AWS EC2 Key Pair name
-- `aws_region`: Your preferred AWS region
-- `ssh_cidr`: Your IP address for SSH access (optional, defaults to 0.0.0.0/0)
+Edit `.env` with your AWS credentials:
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+```
 
-### 2. Initialize Terraform
+### 2. Initialize and Apply
 
 ```bash
+source .env
 terraform init
-```
-
-### 3. Review Plan
-
-```bash
-terraform plan
-```
-
-### 4. Apply Infrastructure
-
-```bash
 terraform apply
 ```
 
 Type `yes` when prompted. This will:
-- Create all AWS resources
-- Generate `inventory-aws.ini` automatically with server IPs
+- Create all AWS resources (VPC, security groups, EC2 instances, ALB)
+- Auto-generate SSH key pair and save to `~/.ssh/ansible-demo-key.pem`
+- Generate `inventory-aws.ini` with all server IPs configured
 
 ### 5. Use Generated Inventory
 
@@ -92,6 +78,7 @@ To tear down all resources (saves costs):
 
 ```bash
 cd terraform
+source .env
 terraform destroy
 ```
 
@@ -111,18 +98,15 @@ Approximate monthly cost (us-east-1, t3.micro):
 
 ### SSH Connection Issues
 
-1. Verify key permissions:
-   ```bash
-   chmod 400 ~/.ssh/your-key.pem
-   ```
+1. The SSH key is auto-generated at `~/.ssh/ansible-demo-key.pem` with correct permissions (0400)
 
 2. Check security group allows your IP:
-   - Update `ssh_cidr` in `terraform.tfvars`
+   - Update `ssh_cidr` variable if needed
 
 ### Terraform Errors
 
-- **"Key pair not found"**: Create the key pair in AWS Console first
-- **"Insufficient permissions"**: Ensure your AWS credentials have EC2, VPC, and IAM permissions
+- **"SSO profile not found"**: Run `source .env` to set AWS credentials
+- **"Insufficient permissions"**: Ensure your IAM user has `AmazonEC2FullAccess` and `ElasticLoadBalancingFullAccess` policies
 - **"AMI not found"**: The Ubuntu AMI might not be available in your region - update the AMI filter in `main.tf`
 
 ### Ansible Connection Issues

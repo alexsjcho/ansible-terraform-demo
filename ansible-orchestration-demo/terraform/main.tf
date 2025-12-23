@@ -247,7 +247,7 @@ resource "aws_instance" "lb" {
   instance_type = var.instance_type
   key_name      = aws_key_pair.generated.key_name
 
-  vpc_security_group_ids = [aws_security_group.alb.id]
+  vpc_security_group_ids = [aws_security_group.alb.id, aws_security_group.web.id]
   subnet_id              = aws_subnet.public[0].id
 
   user_data = <<-EOF

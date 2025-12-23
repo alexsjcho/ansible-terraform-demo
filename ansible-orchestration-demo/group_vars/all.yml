@@ -2,7 +2,7 @@
 # Global configuration variables
 
 # Application version to deploy
-app_version: "v2"
+app_version: "v3"
 
 # Web server configuration
 web_port: 80

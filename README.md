@@ -74,7 +74,7 @@ This demo provides a **complete, automated orchestration framework** that:
 
 ```
 ansible-orchestration-demo/
-├── inventory.ini          # Host inventory
+├── inventory-aws.ini      # Auto-generated AWS inventory (created by Terraform)
 ├── site.yml               # Main orchestration playbook
 ├── group_vars/
 │   └── all.yml           # Global configuration
@@ -88,9 +88,10 @@ ansible-orchestration-demo/
 │       ├── handlers/main.yml
 │       └── templates/nginx.conf.j2
 ├── terraform/            # AWS infrastructure as code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
+│   ├── main.tf           # Main Terraform configuration
+│   ├── variables.tf      # Input variables
+│   ├── outputs.tf        # Output values
+│   ├── .env.example      # AWS credentials template
 │   └── README.md
 └── README.md
 ```
@@ -104,95 +105,94 @@ ansible-orchestration-demo/
    brew install ansible  # macOS
    ```
 
-2. **Infrastructure Options** (choose one):
+2. **Terraform installed** (version 1.0+)
+   ```bash
+   brew install terraform  # macOS
+   # or download from https://terraform.io
+   ```
 
-   **Option A: AWS (Recommended for Cloud Demo)**
-   - AWS account with CLI configured
-   - Terraform installed (>= 1.0)
-   - EC2 Key Pair created in AWS
-   - See [terraform/README.md](terraform/README.md) for setup
-
-   **Option B: Existing Servers**
-   - Three Ubuntu servers (or VMs):
-     - 1 load balancer
-     - 2 web servers
-   - SSH access configured to all servers
-   - Update `inventory.ini` with your server IPs
+3. **AWS Account** with:
+   - IAM user credentials (Access Key ID & Secret Access Key)
+   - IAM permissions: `AmazonEC2FullAccess` and `ElasticLoadBalancingFullAccess`
 
 ## How to Run the Demo
 
-### Option A: AWS Infrastructure (Quick Start)
+### 1. Configure AWS Credentials
 
-1. **Provision AWS Infrastructure**
-   ```bash
-   cd terraform
-   cp terraform.tfvars.example terraform.tfvars
-   # Edit terraform.tfvars with your key_pair_name
-   terraform init
-   terraform apply
-   ```
-   This creates all AWS resources and generates `inventory-aws.ini` automatically.
+```bash
+cd ansible-orchestration-demo/terraform
+cp .env.example .env
+```
 
-2. **Wait 2-3 minutes** for instances to boot, then test connectivity:
-   ```bash
-   cd ..
-   ansible all -i inventory-aws.ini -m ping
-   ```
+Edit `.env` with your AWS credentials:
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+```
 
-3. **Run the Deployment**
-   ```bash
-   ansible-playbook -i inventory-aws.ini site.yml
-   ```
+### 2. Provision AWS Infrastructure
 
-4. **Cleanup** (when done):
-   ```bash
-   cd terraform
-   terraform destroy
-   ```
+```bash
+source .env
+terraform init
+terraform apply
+```
 
-### Option B: Existing Servers
+This automatically:
+- Creates VPC, subnets, security groups, and EC2 instances
+- Generates an SSH key pair and saves it to `~/.ssh/ansible-demo-key.pem`
+- Creates `inventory-aws.ini` with all host IPs configured
 
-1. **Update Inventory**
+![Terraform Provision](img/terraform-plan-output.png)
 
-   Edit `inventory.ini` with your server details:
-   ```ini
-   [loadbalancer]
-   lb ansible_host=YOUR_LB_IP
+### 3. Test Connectivity
 
-   [webservers]
-   web1 ansible_host=YOUR_WEB1_IP
-   web2 ansible_host=YOUR_WEB2_IP
-   ```
+Wait 2-3 minutes for instances to boot, then:
+```bash
+cd ..
+ansible all -i inventory-aws.ini -m ping
+```
 
-2. **Test Connectivity**
-   ```bash
-   ansible all -i inventory.ini -m ping
-   ```
+All three hosts (lb, web1, web2) should respond with "pong".
 
-3. **Run the Full Deployment**
-   ```bash
-   ansible-playbook -i inventory.ini site.yml
-   ```
+![Ansible connectivity test](img/ansible-connectivity-test.png)
+
+### 4. Run the Deployment
+
+```bash
+ansible-playbook -i inventory-aws.ini site.yml
+```
+![Ansible Deployment](img/ansible-deployment.png)
+
+### 5. Access Your Application
+
+After deployment, access your app via the ALB DNS or load balancer IP (shown in Terraform outputs).
+
+### 6. Cleanup
+
+**Important:** Destroy resources when done to avoid AWS charges!
+```bash
+cd terraform
+source .env
+terraform destroy
+```
 
 ### Deploy a New Version
 
 Edit `group_vars/all.yml` to change `app_version: "v3"`, then run:
 ```bash
-# For AWS
 ansible-playbook -i inventory-aws.ini site.yml
-
-# For existing servers
-ansible-playbook -i inventory.ini site.yml
 ```
+![Version Change](img/ansible-version-3-change.png)
 
 ### Run Specific Components
 
 ```bash
 # Deploy only load balancer
-ansible-playbook -i inventory.ini site.yml --tags lb
+ansible-playbook -i inventory-aws.ini site.yml --tags lb
 
 # Deploy only web servers
-ansible-playbook -i inventory.ini site.yml --tags web
+ansible-playbook -i inventory-aws.ini site.yml --tags web
 ```
 
 ## What This Demo Shows
@@ -235,10 +235,13 @@ ansible-playbook -i inventory.ini site.yml --tags web
 
 ## Troubleshooting
 
-- **Connection issues**: Verify SSH access and update `inventory.ini` credentials
-- **Permission errors**: Ensure `become: yes` works (sudo access)
+- **Connection issues**: Verify SSH access with `ansible all -i inventory-aws.ini -m ping`
+- **Permission errors**: Ensure `become: yes` works (sudo access on remote hosts)
 - **Health check failures**: Check firewall rules allow port 80
 - **Nginx errors**: Check logs at `/var/log/nginx/error.log`
+- **AWS SSO profile errors**: Run `source .env` to set credentials and unset any conflicting AWS_PROFILE
+- **IAM permission errors**: Ensure your IAM user has `AmazonEC2FullAccess` and `ElasticLoadBalancingFullAccess` policies
+- **SSH timeout to lb**: The load balancer needs both `alb` and `web` security groups for SSH access
 
 ## AWS Infrastructure
 
@@ -250,16 +253,12 @@ This project includes Terraform configuration to provision AWS infrastructure:
 - **EC2 Instances**: 1 load balancer + 2 web servers
 - **Auto-generated inventory** file
 
-See [terraform/README.md](terraform/README.md) for detailed setup instructions.
+![AWS Compute Dashboard](img/aws-compute-dashboard.png)
+
+![AWS Resources Created](img/aws-resources-created.png)
+
 
 **Cost Estimate**: ~$50-60/month (remember to `terraform destroy` when done!)
 
-## Next Steps
-
-- Add SSL/TLS termination
-- Implement blue-green deployments
-- Add monitoring integration
-- Extend to more web servers
-- Add database migrations orchestration
-- Move web servers to private subnets (production best practice)
+See [terraform/README.md](terraform/README.md) for detailed setup instructions.
 
